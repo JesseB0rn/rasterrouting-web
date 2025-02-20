@@ -1,0 +1,21 @@
+{
+  "name": "rasterrouting-web",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@mapbox/point-geometry": "^1.1.0",
+    "@mapbox/sphericalmercator": "^2.0.1",
+    "@mapbox/tilebelt": "^2.0.2",
+    "es6-promise-pool": "^2.5.0",
+    "maplibre-gl": "^5.1.0"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  }
+}
