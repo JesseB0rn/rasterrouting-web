@@ -10,6 +10,13 @@
       "type": "raster-dem",
       "url": "https://shop.robofactory.ch/swissalps.json",
       "attribution": "SwissAlti3D © Swisstopo"
+    },
+    "loaded_tiles": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
     }
   },
   "terrain": { "source": "terrainSource" },
@@ -5653,6 +5660,32 @@
       },
       "paint": { "text-color": "hsl(327, 48%, 55%)", "text-opacity": ["step", ["zoom"], 1, 7, 0], "text-halo-blur": 0.25, "text-halo-color": "rgba(255, 255, 255, 0.8)", "text-halo-width": 1 },
       "filter": ["all", ["==", "class", "country"], ["==", "iso_a2", "CH"]]
+    },
+    {
+      "id": "loaded_tiles_point",
+      "type": "symbol",
+      "source": "loaded_tiles",
+      "source-layer": "",
+      "minzoom": 6.0,
+      "layout": {
+        "text-font": ["Frutiger Neue Italic"],
+        "text-size": 16,
+        "text-field": "OK \n {location}",
+        "visibility": "visible",
+        "text-padding": 40,
+        "symbol-spacing": 250,
+        "text-max-width": 99999,
+        "symbol-placement": "point",
+        "text-keep-upright": true,
+        "symbol-avoid-edges": true,
+        "text-allow-overlap": false,
+        "text-letter-spacing": 0.02,
+        "text-pitch-alignment": "viewport",
+        "text-ignore-placement": false,
+        "text-rotation-alignment": "viewport",
+        "icon-image": "circle_black"
+      },
+      "paint": { "text-color": "rgba(0, 255, 42, 1)", "text-halo-blur": 0.25, "text-halo-color": "rgba(242, 242, 242, 0.9)", "text-halo-width": 0.5 }
     }
   ],
   "metadata": {

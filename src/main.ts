@@ -1,14 +1,15 @@
-import { Map as MapGL } from "maplibre-gl/dist/maplibre-gl.js";
+import { Feature, Map as MapGL } from "maplibre-gl/dist/maplibre-gl.js";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { bboxToTile, getParent, Tile, tileToBBOX } from "@mapbox/tilebelt";
 import "@mapbox/sphericalmercator";
 import Point from "@mapbox/point-geometry";
 import { pointToTile, getChildren, tileToQuadkey } from "@mapbox/tilebelt";
-import type { BBox } from "geojson";
+import type { BBox, Geometry } from "geojson";
 import PromisePool from "es6-promise-pool";
 
 const kClaculationZoomLevel = 15;
 const kDEMUrl = "https://shop.robofactory.ch/swissalps/{z}/{x}/{y}.png";
+// const kDEMUrl = "http://0.0.0.0:8000/services/swissalps/tiles/{z}/{x}/{y}.png";
 
 var map = new MapGL({
   container: "map", // container id
@@ -21,8 +22,14 @@ var map = new MapGL({
 
 let points = [];
 
+interface ITileData {
+  tile: Tile;
+  demData: Float32Array;
+}
+let loadedTiles = new Map<string, ITileData>();
+
 map.on("click", (e) => {
-  console.log(e.lngLat);
+  // console.log(e.lngLat);
   points.push(Point.convert([e.lngLat.lng, e.lngLat.lat]));
 
   if (points.length >= 2) {
@@ -38,8 +45,29 @@ map.on("click", (e) => {
 
     const tiles = identifyNeededTiles(endpointA, endpointB);
     const sortedTiles = toposortLoadingSrategy(tiles, endpointA, endpointB);
-    console.log(sortedTiles);
-    loadTilesPooled(sortedTiles);
+    // console.log(sortedTiles);
+    loadTilesPooled(sortedTiles).then(() => {
+      let geojson = {
+        type: "FeatureCollection",
+        features: [] as any[],
+      };
+
+      loadedTiles.forEach((tileData) => {
+        const tile = tileData.tile;
+        const bbox = tileToBBOX(tile);
+        geojson.features.push({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [bbox[0], bbox[1]],
+          },
+          properties: {
+            location: tile,
+          },
+        });
+      }) as any;
+      (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
+    });
   }
 });
 
@@ -136,7 +164,7 @@ const getTileURL = (tile: Tile) => {
 };
 
 const loadTilesPooled = async (tiles: Tile[]) => {
-  const urls = tiles.map((tile) => getTileURL(tile));
+  const urls = tiles.map((tile) => [getTileURL(tile), tile] as [string, Tile]);
 
   let totalSize = 0;
   const tileCount = urls.length;
@@ -147,18 +175,20 @@ const loadTilesPooled = async (tiles: Tile[]) => {
     if (!a) {
       return;
     }
-    return new Promise<Float32Array>((res, reject) => {
-      fetch(a).then((resp) => {
+    return new Promise<ITileData>((res, reject) => {
+      fetch(a[0]).then((resp) => {
         resp.blob().then((blob) => {
-          console.log("loaded", a, blob.size);
+          // console.log("loaded", a, blob.size);
           totalSize += blob.size;
           getRGBDEMBitmap(blob).then((dem) => {
-            console.log(dem);
+            // console.log(dem);
             if (!dem) {
               reject("could not load dem");
               return;
             }
-            res(dem?.demData);
+            const tileData = { tile: a[1], demData: dem.demData };
+            loadedTiles.set(tileToQuadkey(a[1]), tileData);
+            res(tileData);
           });
         });
       });
