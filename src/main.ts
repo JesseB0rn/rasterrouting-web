@@ -7,7 +7,7 @@ import type { BBox, Geometry } from "geojson";
 import PromisePool from "es6-promise-pool";
 import { PriorityQueue } from "./pqueue";
 
-const kClaculationZoomLevel = 14;
+const kClaculationZoomLevel = 15;
 const kDEMUrl = "https://shop.robofactory.ch/swissalps/{z}/{x}/{y}.png";
 // const kDEMUrl = "http://0.0.0.0:8000/services/swissalps/tiles/{z}/{x}/{y}.png";
 
@@ -265,7 +265,7 @@ const getRGBDEMBitmap = async (blob: Blob) => {
     const b = pixels[i * 4 + 2]; // Blue channel
 
     // Decode height using common RGB-DEM formula
-    demData[i] = r * 256 + g + b / 256;
+    demData[i] = -10000 + (r * 256 * 256 + g * 256 + b) * 0.1;
   }
 
   return { demData }; // Return width, height, and decoded DEM
