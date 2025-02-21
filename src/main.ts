@@ -147,12 +147,19 @@ const loadTilesPooled = async (tiles: Tile[]) => {
     if (!a) {
       return;
     }
-    return new Promise<Blob>((res) => {
+    return new Promise<Float32Array>((res, reject) => {
       fetch(a).then((resp) => {
         resp.blob().then((blob) => {
           console.log("loaded", a, blob.size);
           totalSize += blob.size;
-          res(blob);
+          getRGBDEMBitmap(blob).then((dem) => {
+            console.log(dem);
+            if (!dem) {
+              reject("could not load dem");
+              return;
+            }
+            res(dem?.demData);
+          });
         });
       });
     });
@@ -160,7 +167,37 @@ const loadTilesPooled = async (tiles: Tile[]) => {
 
   const pool = new PromisePool(producer, 16);
 
-  const results = await pool.start();
+  await pool.start();
   const time = (new Date().getTime() - start) / 1000;
   console.log(`loaded ${tileCount} tiles with a total size of ${totalSize / 1024 / 1024} MB in ${time}s`);
+};
+
+const getRGBDEMBitmap = async (blob: Blob) => {
+  const image = await createImageBitmap(blob);
+
+  const canvas = new OffscreenCanvas(image.width, image.height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("could not get context");
+    return undefined;
+  }
+
+  ctx.drawImage(image, 0, 0);
+  const imageData = ctx.getImageData(0, 0, image.width, image.height);
+  const pixels = imageData.data; // Uint8ClampedArray (RGBA format)
+
+  const width = image.width;
+  const height = image.height;
+  const demData = new Float32Array(width * height); // Store height values
+
+  for (let i = 0; i < width * height; i++) {
+    const r = pixels[i * 4]; // Red channel
+    const g = pixels[i * 4 + 1]; // Green channel
+    const b = pixels[i * 4 + 2]; // Blue channel
+
+    // Decode height using common RGB-DEM formula
+    demData[i] = r * 256 + g + b / 256;
+  }
+
+  return { demData }; // Return width, height, and decoded DEM
 };
