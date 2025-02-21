@@ -1,9 +1,8 @@
 import { Feature, Map as MapGL } from "maplibre-gl/dist/maplibre-gl.js";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { bboxToTile, getParent, Tile, tileToBBOX } from "@mapbox/tilebelt";
+import { bboxToTile, getParent, Tile, tileToBBOX, getChildren, tileToQuadkey, tileToGeoJSON } from "@mapbox/tilebelt";
 import "@mapbox/sphericalmercator";
 import Point from "@mapbox/point-geometry";
-import { pointToTile, getChildren, tileToQuadkey } from "@mapbox/tilebelt";
 import type { BBox, Geometry } from "geojson";
 import PromisePool from "es6-promise-pool";
 
@@ -73,18 +72,13 @@ map.on("click", (e) => {
 
       loadedTiles.forEach((tileData) => {
         const tile = tileData.tile;
-        const bbox = tileToBBOX(tile);
         geojson.features.push({
           type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [bbox[0], bbox[1]],
-          },
-          properties: {
-            location: tile,
-          },
+          geometry: tileToGeoJSON(tile),
+          properties: {},
         });
       }) as any;
+      console.log(geojson);
       (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
     });
   }

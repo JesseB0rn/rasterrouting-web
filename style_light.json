@@ -5669,30 +5669,12 @@
       "filter": ["all", ["==", "class", "country"], ["==", "iso_a2", "CH"]]
     },
     {
-      "id": "loaded_tiles_point",
-      "type": "symbol",
+      "id": "loaded_tiles",
+      "type": "fill",
       "source": "loaded_tiles",
-      "source-layer": "",
-      "minzoom": 6.0,
-      "layout": {
-        "text-font": ["Frutiger Neue Italic"],
-        "text-size": 16,
-        "text-field": "OK \n {location}",
-        "visibility": "visible",
-        "text-padding": 40,
-        "symbol-spacing": 250,
-        "text-max-width": 99999,
-        "symbol-placement": "point",
-        "text-keep-upright": true,
-        "symbol-avoid-edges": true,
-        "text-allow-overlap": false,
-        "text-letter-spacing": 0.02,
-        "text-pitch-alignment": "viewport",
-        "text-ignore-placement": false,
-        "text-rotation-alignment": "viewport",
-        "icon-image": "circle_black"
-      },
-      "paint": { "text-color": "rgba(0, 255, 42, 1)", "text-halo-blur": 0.25, "text-halo-color": "rgba(242, 242, 242, 0.9)", "text-halo-width": 0.5 }
+      "minzoom": 8.0,
+      "layout": { "visibility": "visible" },
+      "paint": { "fill-color": "rgba(40, 235, 5, 1)", "fill-opacity": 0.08, "fill-antialias": false }
     },
     {
       "id": "beeline",
