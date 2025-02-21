@@ -83,8 +83,8 @@ map.on("click", (e) => {
       (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
 
       const rawPath = runSearch(endpointA, endpointB) ?? [];
-      // const simplified = simplifyPath(rawPath, 5.5);
-      const simplified = rawPath;
+      const simplified = simplifyPath(rawPath, 5.5);
+      // const simplified = rawPath;
 
       let pathGeojson = {
         type: "FeatureCollection",
