@@ -32,6 +32,25 @@ map.on("click", (e) => {
   // console.log(e.lngLat);
   points.push(Point.convert([e.lngLat.lng, e.lngLat.lat]));
 
+  let geojson = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [] as any,
+        },
+        properties: {},
+      },
+    ],
+  };
+  points.forEach((point) => {
+    geojson.features[0].geometry.coordinates.push([point.x, point.y]);
+  });
+  console.log(geojson);
+  (map.getSource("beeline") as unknown as any).setData(geojson);
+
   if (points.length >= 2) {
     const endpointA = points[points.length - 2];
     const endpointB = points[points.length - 1];
@@ -123,6 +142,7 @@ const identifyNeededTiles = (endpointA: Point, endpointB: Point): Tile[] => {
 const toposortLoadingSrategy = (tiles: Tile[], endpointA: Point, endpointB: Point): Tile[] => {
   // reject tiles if z is not equal to kClaculationZoomLevel
   let filteredTiles = tiles.filter((tile) => tile[2] === kClaculationZoomLevel);
+  const endpointDist = sphmercdist(endpointA, endpointB);
 
   let dists = new Map<string, number[]>();
 
@@ -143,7 +163,7 @@ const toposortLoadingSrategy = (tiles: Tile[], endpointA: Point, endpointB: Poin
       return false;
     }
     // check if tiles are in the ellipse defined by the endpoints with major axis 24km
-    if (dA + dB > 8000) {
+    if (dA + dB > endpointDist + 1500) {
       return false;
     }
 

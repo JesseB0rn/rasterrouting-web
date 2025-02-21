@@ -17,6 +17,13 @@
         "type": "FeatureCollection",
         "features": []
       }
+    },
+    "beeline": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
     }
   },
   "terrain": { "source": "terrainSource" },
@@ -5686,6 +5693,28 @@
         "icon-image": "circle_black"
       },
       "paint": { "text-color": "rgba(0, 255, 42, 1)", "text-halo-blur": 0.25, "text-halo-color": "rgba(242, 242, 242, 0.9)", "text-halo-width": 0.5 }
+    },
+    {
+      "id": "beeline",
+      "type": "line",
+      "source": "beeline",
+      "paint": {
+        "line-color": "hsl(0, 0%, 0%)",
+        "line-opacity": {
+          "base": 1,
+          "stops": [
+            [11, 0],
+            [11.1, 1]
+          ]
+        },
+        "line-width": {
+          "base": 2,
+          "stops": [
+            [11, 2],
+            [18, 9]
+          ]
+        }
+      }
     }
   ],
   "metadata": {
