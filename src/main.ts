@@ -8,8 +8,9 @@ import PromisePool from "es6-promise-pool";
 import { PriorityQueue } from "./pqueue";
 
 const kClaculationZoomLevel = 15;
-const kDEMUrl = "https://shop.robofactory.ch/swissalps/{z}/{x}/{y}.png";
+// const kDEMUrl = "https://shop.robofactory.ch/swissalps/{z}/{x}/{y}.png";
 // const kDEMUrl = "http://0.0.0.0:8000/services/swissalps/tiles/{z}/{x}/{y}.png";
+const kDEMUrl = "http://0.0.0.0:8000/services/rm.rgb/tiles/{z}/{x}/{y}.png";
 
 var map = new MapGL({
   container: "map", // container id
