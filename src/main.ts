@@ -6,11 +6,12 @@ import Point from "@mapbox/point-geometry";
 import type { BBox, Geometry } from "geojson";
 import PromisePool from "es6-promise-pool";
 import { PriorityQueue } from "./pqueue";
+import { HF2Parser, ungzipBlob } from "./hf2parser";
 
-const kClaculationZoomLevel = 15;
+const kClaculationZoomLevel = 14;
 // const kDEMUrl = "https://shop.robofactory.ch/swissalps/{z}/{x}/{y}.png";
 // const kDEMUrl = "http://0.0.0.0:8000/services/swissalps/tiles/{z}/{x}/{y}.png";
-const kDEMUrl = "http://0.0.0.0:8000/services/rm.rgb/tiles/{z}/{x}/{y}.png";
+const kDEMUrl = "http://localhost:9000/build/tileset/{z}/{x}/{y}.hfz";
 
 var map = new MapGL({
   container: "map", // container id
@@ -66,7 +67,7 @@ map.on("click", (e) => {
     const tiles = identifyNeededTiles(endpointA, endpointB);
     const sortedTiles = toposortLoadingSrategy(tiles, endpointA, endpointB);
     // console.log(sortedTiles);
-    loadTilesPooled(sortedTiles).then(() => {
+    loadTilesPooled(sortedTiles, kDEMUrl, "HFZ").then(() => {
       let geojson = {
         type: "FeatureCollection",
         features: [] as any[],
@@ -84,7 +85,7 @@ map.on("click", (e) => {
       (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
 
       const rawPath = runSearch(endpointA, endpointB) ?? [];
-      const simplified = simplifyPath(rawPath, 5.5);
+      const simplified = simplifyPath(rawPath, 6.5);
       // const simplified = rawPath;
 
       let pathGeojson = {
@@ -198,13 +199,13 @@ const toposortLoadingSrategy = (tiles: Tile[], endpointA: Point, endpointB: Poin
   return sortedTiles;
 };
 
-const getTileURL = (tile: Tile) => {
-  const url = kDEMUrl.replace("{z}", tile[2].toString()).replace("{x}", tile[0].toString()).replace("{y}", tile[1].toString());
+const getTileURL = (tile: Tile, baseurl: string) => {
+  const url = baseurl.replace("{z}", tile[2].toString()).replace("{x}", tile[0].toString()).replace("{y}", tile[1].toString());
   return url;
 };
 
-const loadTilesPooled = async (tiles: Tile[]) => {
-  const urls = tiles.map((tile) => [getTileURL(tile), tile] as [string, Tile]);
+const loadTilesPooled = async (tiles: Tile[], baseurl: string, type: "HFZ" | "RGB") => {
+  const urls = tiles.map((tile) => [getTileURL(tile, baseurl), tile] as [string, Tile]);
 
   let totalSize = 0;
   const tileCount = urls.length;
@@ -215,21 +216,36 @@ const loadTilesPooled = async (tiles: Tile[]) => {
     if (!a) {
       return;
     }
+    // return new Promise<ITileData>((res, reject) => {
+    //   fetch(a[0]).then((resp) => {
+    //     resp.blob().then((blob) => {
+    //       // console.log("loaded", a, blob.size);
+    //       totalSize += blob.size;
+    //       getRGBDEMBitmap(blob).then((dem) => {
+    //         // console.log(dem);
+    //         if (!dem) {
+    //           reject("could not load dem");
+    //           return;
+    //         }
+    //         const tileData = { tile: a[1], demData: dem.demData };
+    //         loadedTiles.set(tileToQuadkey(a[1]), tileData);
+    //         res(tileData);
+    //       });
+    //     });
+    //   });
+    // });
     return new Promise<ITileData>((res, reject) => {
       fetch(a[0]).then((resp) => {
-        resp.blob().then((blob) => {
+        resp.blob().then(async (blob) => {
           // console.log("loaded", a, blob.size);
           totalSize += blob.size;
-          getRGBDEMBitmap(blob).then((dem) => {
-            // console.log(dem);
-            if (!dem) {
-              reject("could not load dem");
-              return;
-            }
-            const tileData = { tile: a[1], demData: dem.demData };
-            loadedTiles.set(tileToQuadkey(a[1]), tileData);
-            res(tileData);
-          });
+          const uncompressed = await ungzipBlob(blob);
+          const parser = new HF2Parser(uncompressed.buffer);
+          const data = new Float32Array(parser.parse().stitchedTiles);
+          const tileData = { tile: a[1], demData: data };
+          loadedTiles.set(tileToQuadkey(a[1]), tileData);
+          console.log(data);
+          res(tileData);
         });
       });
     });
@@ -425,9 +441,9 @@ const runSearch = (endpointA: Point, endpointB: Point) => {
         // console.log("no tile data for", nkey);
         continue;
       }
-      const currentHeight = tileData.demData[current.px_Y * 256 + current.px_X];
+      // const currentHeight = tileData.demData[current.px_Y * 256 + current.px_X];
       const neighborHeight = tileData.demData[neighbor.px_Y * 256 + neighbor.px_X];
-      const newCost = (current.cost ?? 0) + 1 + Math.abs(currentHeight - neighborHeight);
+      const newCost = (current.cost ?? 0) + 0.05 + neighborHeight * 500.0;
 
       if (!visitedTiles.get(nkey)![neighbor.px_X][neighbor.px_Y] && newCost < accumulatedCost.get(nkey)![neighbor.px_X][neighbor.px_Y]) {
         accumulatedCost.get(nkey)![neighbor.px_X][neighbor.px_Y] = newCost;

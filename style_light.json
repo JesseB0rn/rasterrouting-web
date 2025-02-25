@@ -5680,8 +5680,8 @@
       "type": "fill",
       "source": "loaded_tiles",
       "minzoom": 8.0,
-      "layout": { "visibility": "visible" },
-      "paint": { "fill-color": "rgba(40, 235, 5, 1)", "fill-opacity": 0.08, "fill-antialias": false }
+      "layout": { "visibility": "none" },
+      "paint": { "fill-outline-color": "hsl(60, 80%, 50%)", "fill-opacity": 0.05, "fill-antialias": true }
     },
     {
       "id": "beeline",
