@@ -48,7 +48,6 @@ export class TileSource {
             const data = new Float32Array(parser.parse().stitchedTiles);
             const tileData = { tile: a[1], data: data };
             this.tileAtlas.set(tileToQuadkey(a[1]), tileData);
-            console.log(data);
             res(tileData);
           });
         })

@@ -2,6 +2,7 @@ import Point from "@mapbox/point-geometry";
 import { bboxToTile, getChildren, getParent, Tile, tileToBBOX, tileToQuadkey } from "./tilebelt";
 import { kClaculationZoomLevel } from "./constants";
 import type { BBox } from "geojson";
+import type { IPathNode } from "./interfaces/tileData";
 
 export function sphmercdist(a: Point, b: Point): number {
   const e = 0.081819191;
@@ -89,4 +90,64 @@ export function toposortLoadingSrategy(tiles: Tile[], endpointA: Point, endpoint
   });
 
   return sortedTiles;
+}
+
+export function simplifyPath(path: IPathNode[], epsilon: number): IPathNode[] {
+  if (path.length < 3) return path;
+
+  const distanceToLine = (pA: IPathNode, pTest: IPathNode, pB: IPathNode): number => {
+    const A = pB.px_Y - pA.px_Y;
+    const B = pA.px_X - pB.px_X;
+    const C = pB.px_X * pA.px_Y - pA.px_X * pB.px_Y;
+
+    return Math.abs(A * pTest.px_X + B * pTest.px_Y + C) / Math.sqrt(A * A + B * B);
+  };
+
+  const douglasPeucker = (start: number, end: number): IPathNode[] => {
+    let maxDistance = 0;
+    let farthestIndex = start;
+
+    for (let i = start + 1; i < end; i++) {
+      const distance = distanceToLine(path[start], path[i], path[end]);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        farthestIndex = i;
+      }
+    }
+
+    if (maxDistance > epsilon) {
+      const recResults1 = douglasPeucker(start, farthestIndex);
+      const recResults2 = douglasPeucker(farthestIndex, end);
+      return [...recResults1.slice(0, -1), ...recResults2];
+    } else {
+      return [path[start], path[end]];
+    }
+  };
+
+  return douglasPeucker(0, path.length - 1);
+}
+
+export function smoothPath(path: number[][]): number[][] {
+  if (path.length < 2) return path;
+
+  let newPath = path.map((node) => ({ ...node }));
+
+  for (let iters = 0; iters < 3; iters++) {
+    const smoothed: number[][] = [];
+    for (let i = 0; i < newPath.length - 1; i++) {
+      const p1 = newPath[i];
+      const p2 = newPath[i + 1];
+
+      const x1new = 0.75 * p1[0] + 0.25 * p2[0];
+      const y1new = 0.75 * p1[1] + 0.25 * p2[1];
+      const x2new = 0.25 * p1[0] + 0.75 * p2[0];
+      const y2new = 0.25 * p1[1] + 0.75 * p2[1];
+
+      smoothed.push([x1new, y1new]);
+      smoothed.push([x2new, y2new]);
+    }
+    newPath = smoothed;
+  }
+
+  return [path[0], ...newPath, path[path.length - 1]];
 }

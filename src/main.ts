@@ -1,12 +1,13 @@
 import { Map as MapGL } from "maplibre-gl/dist/maplibre-gl.js";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Tile, tileToQuadkey, tileToGeoJSON, pointToTileFraction, pointToTile, fracTileToPoint } from "./tilebelt";
+import { Tile, tileToQuadkey, pointToTileFraction, pointToTile, fracTileToPoint } from "./tilebelt";
 import "@mapbox/sphericalmercator";
 import Point from "@mapbox/point-geometry";
 import { PriorityQueue } from "./pqueue";
 import { TileSource } from "./tilesource";
 import { kClaculationZoomLevel, kDEMUrl, kRMUrl } from "./constants";
-import { identifyNeededTiles, sphmercdist, toposortLoadingSrategy } from "./helpers";
+import { identifyNeededTiles, simplifyPath, sphmercdist, toposortLoadingSrategy, smoothPath } from "./helpers";
+import { IPathNode } from "./interfaces/tileData";
 
 const DEMTileSource = new TileSource(kDEMUrl, "RGB");
 const RMTileSource = new TileSource(kRMUrl, "HFZ");
@@ -79,6 +80,13 @@ map.on("click", (e) => {
 
       const rawPath = runSearch(endpointA, endpointB) ?? [];
       const simplified = simplifyPath(rawPath, 6.5);
+
+      const wgs84 = simplified.map((point) => {
+        const _tile = [point.tile[0] + point.px_X / 256, point.tile[1] + point.px_Y / 256, point.tile[2]] as Tile;
+        return fracTileToPoint(_tile);
+      });
+
+      const smoothed = smoothPath(wgs84);
       // const simplified = rawPath;
 
       let pathGeojson = {
@@ -94,9 +102,8 @@ map.on("click", (e) => {
           },
         ],
       };
-      simplified.forEach((point) => {
-        const _tile = [point.tile[0] + point.px_X / 256, point.tile[1] + point.px_Y / 256, point.tile[2]] as Tile;
-        pathGeojson.features[0].geometry.coordinates.push(fracTileToPoint(_tile));
+      smoothed.forEach((point) => {
+        pathGeojson.features[0].geometry.coordinates.push(point);
       });
       console.log(pathGeojson);
       (map.getSource("path") as unknown as any).setData(pathGeojson);
@@ -104,14 +111,6 @@ map.on("click", (e) => {
     DEMTileSource.loadTilesPooled(sortedTiles).then(() => {});
   }
 });
-
-interface IPathNode {
-  px_X: number;
-  px_Y: number;
-  tile: Tile;
-  cost?: number;
-  heuristic?: number;
-}
 
 const findNeighbours = (src: IPathNode): IPathNode[] => {
   let neighbors = [] as IPathNode[];
@@ -232,7 +231,7 @@ const runSearch = (endpointA: Point, endpointB: Point) => {
           const cindex = cameFrom.get(ckey)![currentTile.px_X][currentTile.px_Y];
           const neigbrs = findNeighbours(currentTile);
           path.push(currentTile);
-          console.log("backtracking", currentTile, "from", cindex);
+          // console.log("backtracking", currentTile, "from", cindex);
           currentTile = neigbrs[7 - cindex];
         }
         console.log("found path", path);
@@ -283,39 +282,4 @@ const runSearch = (endpointA: Point, endpointB: Point) => {
     alert("no path found");
     return;
   }
-};
-
-const simplifyPath = (path: IPathNode[], epsilon: number): IPathNode[] => {
-  if (path.length < 3) return path;
-
-  const distanceToLine = (pA: IPathNode, pTest: IPathNode, pB: IPathNode): number => {
-    const A = pB.px_Y - pA.px_Y;
-    const B = pA.px_X - pB.px_X;
-    const C = pB.px_X * pA.px_Y - pA.px_X * pB.px_Y;
-
-    return Math.abs(A * pTest.px_X + B * pTest.px_Y + C) / Math.sqrt(A * A + B * B);
-  };
-
-  const douglasPeucker = (start: number, end: number): IPathNode[] => {
-    let maxDistance = 0;
-    let farthestIndex = start;
-
-    for (let i = start + 1; i < end; i++) {
-      const distance = distanceToLine(path[start], path[i], path[end]);
-      if (distance > maxDistance) {
-        maxDistance = distance;
-        farthestIndex = i;
-      }
-    }
-
-    if (maxDistance > epsilon) {
-      const recResults1 = douglasPeucker(start, farthestIndex);
-      const recResults2 = douglasPeucker(farthestIndex, end);
-      return [...recResults1.slice(0, -1), ...recResults2];
-    } else {
-      return [path[start], path[end]];
-    }
-  };
-
-  return douglasPeucker(0, path.length - 1);
 };
