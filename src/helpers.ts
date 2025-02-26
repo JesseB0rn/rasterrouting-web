@@ -151,3 +151,47 @@ export function smoothPath(path: number[][]): number[][] {
 
   return [path[0], ...newPath, path[path.length - 1]];
 }
+
+export function findNeighbours(src: IPathNode): IPathNode[] {
+  let neighbors = [] as IPathNode[];
+  const px_X = src.px_X;
+  const px_Y = src.px_Y;
+
+  // chess king moves, 8 directions, check if the px is 0 or 255, and jump to the next tile if needed
+  const wrapXneg = px_X === 0;
+  const wrapXpos = px_X === 255;
+  const wrapYneg = px_Y === 0;
+  const wrapYpos = px_Y === 255;
+
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      if (i === 0 && j === 0) {
+        continue;
+      }
+
+      let x = px_X + i;
+      let y = px_Y + j;
+      let tile = [src.tile[0], src.tile[1], src.tile[2]] as Tile;
+
+      if (wrapXneg && i === -1) {
+        x = 255;
+        tile[0]--;
+      }
+      if (wrapXpos && i === 1) {
+        x = 0;
+        tile[0]++;
+      }
+      if (wrapYneg && j === -1) {
+        y = 255;
+        tile[1]--;
+      }
+      if (wrapYpos && j === 1) {
+        y = 0;
+        tile[1]++;
+      }
+
+      neighbors.push({ px_X: x, px_Y: y, tile: [tile[0], tile[1], tile[2]] });
+    }
+  }
+  return neighbors;
+}
