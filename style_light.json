@@ -5677,11 +5677,11 @@
     },
     {
       "id": "loaded_tiles",
-      "type": "fill",
+      "type": "line",
       "source": "loaded_tiles",
       "minzoom": 8.0,
-      "layout": { "visibility": "none" },
-      "paint": { "fill-outline-color": "hsl(60, 80%, 50%)", "fill-opacity": 0.05, "fill-antialias": true }
+      "layout": { "visibility": "visible" },
+      "paint": { "line-color": "hsl(115, 80%, 25%)", "line-width": 4 }
     },
     {
       "id": "beeline",

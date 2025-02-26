@@ -1,6 +1,6 @@
 import { Map as MapGL } from "maplibre-gl/dist/maplibre-gl.js";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Tile, tileToQuadkey, pointToTileFraction, pointToTile, fracTileToPoint } from "./tilebelt";
+import { Tile, tileToQuadkey, pointToTileFraction, pointToTile, fracTileToPoint, tileToGeoJSON } from "./tilebelt";
 import "@mapbox/sphericalmercator";
 import Point from "@mapbox/point-geometry";
 import { PriorityQueue } from "./pqueue";
@@ -61,22 +61,22 @@ map.on("click", (e) => {
     const sortedTiles = toposortLoadingSrategy(tiles, endpointA, endpointB);
     // console.log(sortedTiles);
 
-    Promise.all([RMTileSource.loadTilesPooled(sortedTiles), DEMTileSource.loadTilesPooled(sortedTiles)]).then(() => {
-      // let geojson = {
-      //   type: "FeatureCollection",
-      //   features: [] as any[],
-      // };
+    Promise.all([RMTileSource.loadTilesPooled(sortedTiles), DEMTileSource.loadTilesPooled(sortedTiles)]).then(async () => {
+      let geojson = {
+        type: "FeatureCollection",
+        features: [] as any[],
+      };
 
-      // RMTileSource.tileAtlas.forEach((tileData) => {
-      //   const tile = tileData.tile;
-      //   geojson.features.push({
-      //     type: "Feature",
-      //     geometry: tileToGeoJSON(tile),
-      //     properties: {},
-      //   });
-      // }) as any;
-      // console.log(geojson);
-      // (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
+      RMTileSource.tileAtlas.forEach((tileData) => {
+        const tile = tileData.tile;
+        geojson.features.push({
+          type: "Feature",
+          geometry: tileToGeoJSON(tile),
+          properties: {},
+        });
+      }) as any;
+      console.log(geojson);
+      (map.getSource("loaded_tiles") as unknown as any).setData(geojson);
 
       const rawPath = runSearch(endpointA, endpointB) ?? [];
       const simplified = simplifyPath(rawPath, 6.5);
@@ -89,23 +89,26 @@ map.on("click", (e) => {
       const smoothed = smoothPath(wgs84);
       // const simplified = rawPath;
 
-      let pathGeojson = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "LineString",
-              coordinates: [] as any,
-            },
-            properties: {},
-          },
-        ],
+      let pathGeojson = await (map.getSource("path") as unknown as any).getData();
+      if (!pathGeojson) {
+        pathGeojson = {
+          type: "FeatureCollection",
+          features: [] as any[],
+        };
+      }
+      let segment = {
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates: [] as any,
+        },
+        properties: {},
       };
       smoothed.forEach((point) => {
-        pathGeojson.features[0].geometry.coordinates.push(point);
+        segment.geometry.coordinates.push(point);
       });
       console.log(pathGeojson);
+      pathGeojson.features.push(segment);
       (map.getSource("path") as unknown as any).setData(pathGeojson);
     });
     DEMTileSource.loadTilesPooled(sortedTiles).then(() => {});
@@ -114,7 +117,6 @@ map.on("click", (e) => {
 
 const findNeighbours = (src: IPathNode): IPathNode[] => {
   let neighbors = [] as IPathNode[];
-  let tile = [src.tile[0], src.tile[1], src.tile[2]] as Tile;
   const px_X = src.px_X;
   const px_Y = src.px_Y;
 
