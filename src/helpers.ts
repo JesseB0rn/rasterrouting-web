@@ -26,9 +26,12 @@ export function sphmercdist(a: Point, b: Point): number {
 export function identifyNeededTiles(endpointA: Point, endpointB: Point): Tile[] {
   const bbox = [endpointA.x, endpointA.y, endpointB.x, endpointB.y] as BBox;
   const rootTile = bboxToTile(bbox);
-  let zLevel = rootTile[2];
 
-  let stack = [rootTile];
+  const rootTileParent = getParent(getParent(rootTile));
+
+  let zLevel = rootTileParent[2];
+
+  let stack = [rootTileParent];
 
   // we done fucked up because zoom level is already larger than kClaculationZoomLevel?
   while (zLevel > kClaculationZoomLevel) {
@@ -77,7 +80,7 @@ export function toposortLoadingSrategy(tiles: Tile[], endpointA: Point, endpoint
       return false;
     }
     // check if tiles are in the ellipse defined by the endpoints with major axis 24km
-    if (dA + dB > endpointDist + 1500) {
+    if (dA + dB > endpointDist * 1.5 + 1500) {
       return false;
     }
 
