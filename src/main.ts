@@ -11,7 +11,7 @@ import { IPathNode } from "./interfaces/tileData";
 
 var map = new MapGL({
   container: "map", // container id
-  style: "../style_light.json", // style URL
+  style: "../style_winter.json", // style URL
   maxZoom: 16,
   maxPitch: 80,
   center: [8.649673461914062, 46.97580176043127],
