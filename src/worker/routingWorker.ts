@@ -50,14 +50,13 @@ onmessage = (e) => {
 
       postMessage({ path: smoothed });
     });
-    DEMTileSource.loadTilesPooled(sortedTiles).then(() => {});
   }
 };
 
 const runSearch = (endpointA: Point, endpointB: Point) => {
   const createIfNotExistsGuard = (key: string) => {
     if (visitedTiles.get(key) === undefined) {
-      console.log("creating for", key, "set of tiles:", visitedTiles.size);
+      // console.log("creating for", key, "set of tiles:", visitedTiles.size);
       visitedTiles.set(
         key,
         new Array(256).fill(false).map(() => new Array(256).fill(false))

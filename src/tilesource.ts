@@ -18,22 +18,27 @@ export class TileSource {
 
   private loadTileRGB(a: [string, Tile]): Promise<ITileData> {
     return new Promise<ITileData>((res, reject) => {
-      fetch(a[0]).then((resp) => {
-        resp.blob().then((blob) => {
-          // console.log("loaded", a, blob.size);
-          this.totalSize += blob.size;
-          this.getRGBDEMBitmap(blob).then((dem) => {
-            // console.log(dem);
-            if (!dem) {
-              reject("could not decode rgb data");
-              return;
-            }
-            const tileData = { tile: a[1], data: dem.demData };
-            this.tileAtlas.set(tileToQuadkey(a[1]), tileData);
-            res(tileData);
+      fetch(a[0])
+        .then((resp) => {
+          resp.blob().then((blob) => {
+            // console.log("loaded", a, blob.size);
+            this.totalSize += blob.size;
+            this.getRGBDEMBitmap(blob).then((dem) => {
+              // console.log(dem);
+              if (!dem) {
+                reject("could not decode rgb data");
+                return;
+              }
+              const tileData = { tile: a[1], data: dem.demData };
+              this.tileAtlas.set(tileToQuadkey(a[1]), tileData);
+              res(tileData);
+            });
           });
+        })
+        .catch((e) => {
+          console.error(e);
+          // reject(e);
         });
-      });
     });
   }
 
@@ -61,7 +66,6 @@ export class TileSource {
   public async loadTilesPooled(tiles: Tile[]): Promise<void> {
     const urls = tiles.map((tile) => [this.getTileURL(tile), tile] as [string, Tile]);
 
-    let totalSize = 0;
     const tileCount = urls.length;
     const start = new Date().getTime();
 
@@ -87,7 +91,7 @@ export class TileSource {
 
     await pool.start();
     const time = (new Date().getTime() - start) / 1000;
-    console.log(`loaded ${tileCount} tiles with a total size of ${totalSize / 1024 / 1024} MB in ${time}s`);
+    console.log(`loaded ${tileCount} tiles with a total size of ${this.totalSize / 1024 / 1024} MB in ${time}s`);
   }
   getTileURL(tile: Tile): string {
     const turl = this.url.replace("{z}", tile[2].toString()).replace("{x}", tile[0].toString()).replace("{y}", tile[1].toString());
